@@ -34,7 +34,7 @@ def predictYOLO(image, model):
         Runs object detection on one image and retrieves the first
         prediction result (since only one image is processed).
     """
-    result = model.predict(image.img, verbose=False)[0]  # 0 because only one image
+    result = model.predict(image, verbose=False)[0] #Normalement image.img mais pour video juste image # 0 because only one image
     return result
 
 
@@ -115,9 +115,12 @@ def extract_darts_cal_coords_from_yolo_output(yoloOutput):
 
     # Convert dart list to numpy array
     dart_coords = np.array(dart_coords) if len(dart_coords) > 0 else np.empty((0, 2))
-
+    print("calibration_coords : ",calibration_coords,"\ndarts_coords : ",dart_coords)
     # Check if too many calibration points are missing
     if np.count_nonzero(calibration_coords == -1) / 2 > 2:
-        return {"error": "Calibration impossible sur cette image"}
+        
+        print("error, Calibration impossible sur cette image")
+        return calibration_coords, np.empty((0,2))
 
+   
     return calibration_coords, dart_coords

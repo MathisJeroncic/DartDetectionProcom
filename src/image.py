@@ -18,8 +18,13 @@ class Image():
         """
 
         self.path = img_path
-        self.img = self._load_image(self.path)
-        self.resolution = np.array([self.img.shape[0], self.img.shape[1]])
+        self.img = self._load_image(img_path)
+
+        self.resolution = np.array([
+            self.img.shape[0],
+            self.img.shape[1]
+        ])
+
         self.crop_size = min(self.resolution)
         self.crop_start = self.resolution/2 - self.crop_size/2
 
