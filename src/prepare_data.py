@@ -354,6 +354,48 @@ def remap_classes(label_dir, output_dir):
         print(f"OK → {file_name}")
     print(f"\nTerminé : remapping terminé (classes.txt préservé)")
         
+def remove_class_7_from_labels(labels_root):
+    total_files = 0
+    total_lines_removed = 0
+
+    for root, dirs, files in os.walk(labels_root):
+        for file in files:
+            if file.endswith(".txt"):
+                file_path = os.path.join(root, file)
+                total_files += 1
+
+                with open(file_path, "r") as f:
+                    lines = f.readlines()
+
+                new_lines = []
+                removed_in_file = 0
+
+                for line in lines:
+                    parts = line.strip().split()
+
+                    # Vérifie que la ligne est bien formée
+                    if len(parts) >= 1:
+                        class_id = parts[0]
+
+                        if class_id == "7":
+                            removed_in_file += 1
+                            continue  # on ignore cette ligne
+
+                    new_lines.append(line)
+
+                total_lines_removed += removed_in_file
+
+                # Réécriture du fichier
+                with open(file_path, "w") as f:
+                    f.writelines(new_lines)
+
+                if removed_in_file > 0:
+                    print(f"{file_path} → {removed_in_file} ligne(s) supprimée(s)")
+
+    print("\n=== TERMINÉ ===")
+    print(f"Fichiers traités : {total_files}")
+    print(f"Lignes supprimées (classe 7) : {total_lines_removed}")
+
 
 def split_dataset(dataset_name, val_frac=0.1, test_frac=0.15):
     path_to_data = "data\\darts"
@@ -381,4 +423,30 @@ def split_dataset(dataset_name, val_frac=0.1, test_frac=0.15):
     for image_name in image_names[num_val+num_test:]:
         shutil.move(os.path.join(path_to_images, image_name), os.path.join(path_to_images, 'train'))
         shutil.move(os.path.join(path_to_labels, image_name.replace(image_name[-4:], '.txt')), os.path.join(path_to_labels, 'train'))
+
+if __name__ == '__main__':
+    # path_to_images = "./data/darts/images/fine_tuning_aprem3_cropped/"
+    # new_path = "./data/darts/images/fine_tuning_aprem3_800/"
+    # resize_images(path_to_images, new_path)
+
+    # change_bb_size_copy(
+    #     src_label_dir="data/darts/labels/fine_tuning_matinee_raw",
+    #     dst_label_dir="data/darts/labels/fine_tuning_matinee1",
+    #     bb_size=0.025
+    # )
+    # propagate_calibration_from_center(
+    #     label_dir="data/darts/labels/fine_tuning_matinee1",
+    #     output_dir="data/darts/labels/fine_tuning_matinee2",
+    #     nb_calib=5
+    # )
+
+    # remap_classes(
+    #     label_dir="data/darts/images/test_labels_1",
+    #     output_dir="data/darts/images/test_labels_1"
+    # )
+
+    dataset_name = "aprem2"
+    split_dataset(dataset_name=dataset_name)
+
+    #remove_class_7_from_labels(labels_directory) 
 
