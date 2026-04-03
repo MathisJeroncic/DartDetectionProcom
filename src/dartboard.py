@@ -83,7 +83,7 @@ class Dartboard():
             np.logical_and(calibration_coords >= 0, calibration_coords <= 1),
             axis=1
         )
-        H_matrix = cv2.findHomography(
+        H_matrix, _ = cv2.findHomography(
             calibration_coords[mask]*image_shape,
             self.boardplane_calibration_coords[mask]*image_shape
         )

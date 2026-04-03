@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class GameLogic:
     def __init__(self, ruleset, player_names, x01=501, num_legs=1):
         self.ruleset = ruleset
@@ -13,15 +14,20 @@ class GameLogic:
         self.current_player = 0
         self.starting_player = 0
 
-        self.num_visits_history = np.zeros((self.num_players, num_legs * 2 - 1))
-        self.num_dart_history = np.zeros((self.num_players, num_legs * 2 - 1))
         self.averages = np.zeros(self.num_players)
+
+        self.total_points = [0] * self.num_players
+        self.total_darts = [0] * self.num_players
+
+        # ✅ NEW: count visits (turns)
+        self.visits = [0] * self.num_players
+
+        self.num_doubles = [0] * self.num_players
+        self.num_triples = [0] * self.num_players
 
         self.game_over = False
         self.winner = None
         self.last_event = None
-
-    # ------------------ UTILS ------------------
 
     def get_score_for_dart(self, dart):
         if dart == 'DB':
@@ -46,16 +52,21 @@ class GameLogic:
         )
 
     def reset_game(self):
-        """Remet la partie à son état initial pour recommencer."""
         self.scores = [self.x01] * self.num_players
         self.leg_scores = [0] * self.num_players
         self.current_player = self.starting_player
-        self.num_dart_history = np.zeros((self.num_players, self.num_legs * 2 - 1))
-        self.num_visits_history = np.zeros((self.num_players, self.num_legs * 2 - 1))
-        self.averages = np.zeros(self.num_players)
-        self.winner = None
 
-    # ------------------ CORE ------------------
+        self.averages = np.zeros(self.num_players)
+
+        self.total_points = [0] * self.num_players
+        self.total_darts = [0] * self.num_players
+        self.visits = [0] * self.num_players
+
+        self.num_doubles = [0] * self.num_players
+        self.num_triples = [0] * self.num_players
+
+        self.winner = None
+        self.game_over = False
 
     def commit_score(self, darts):
         if self.game_over:
@@ -68,11 +79,27 @@ class GameLogic:
             if not self.validate_dart(dart):
                 return {"error": f"Invalid dart: {dart}"}
 
-        points = sum(self.get_score_for_dart(d) for d in darts)
         player = self.current_player
-        visit_index = int(np.sum(self.leg_scores))
 
-        self.num_visits_history[player][visit_index] += 1
+        points = 0
+
+        for d in darts:
+            pts = self.get_score_for_dart(d)
+            points += pts
+
+            self.total_points[player] += pts
+            self.total_darts[player] += 1
+
+            if d.startswith('D'):
+                self.num_doubles[player] += 1
+            if d.startswith('T'):
+                self.num_triples[player] += 1
+
+        # ✅ FIX: average per VISIT, not per dart
+        self.visits[player] += 1
+        if self.visits[player] > 0:
+            self.averages[player] = self.total_points[player] / self.visits[player]
+
         self.scores[player] -= points
 
         event = {
@@ -94,15 +121,10 @@ class GameLogic:
         self.last_event = event
         return event
 
-    # ------------------ RULES ------------------
-
     def _check_x01(self, darts, points, event):
         player = self.current_player
-        visit_index = int(np.sum(self.leg_scores))
 
-        # CHECKOUT
         if self.scores[player] == 0 and darts[-1][0] == 'D':
-            self.num_dart_history[player][visit_index] += len(darts)
             self.leg_scores[player] += 1
 
             event["checkout"] = True
@@ -117,18 +139,16 @@ class GameLogic:
             self.scores = [self.x01] * self.num_players
             self.starting_player = (self.starting_player + 1) % self.num_players
             self.current_player = self.starting_player
+
             event["next_player"] = self.player_names[self.current_player]
             return
 
-        # BUST
         if self.scores[player] <= 1:
             self.scores[player] += points
             event["bust"] = True
             points = 0
 
-        self.num_dart_history[player][visit_index] += 3
         self.current_player = (self.current_player + 1) % self.num_players
-        event["remaining"] = self.scores[player]
         event["next_player"] = self.player_names[self.current_player]
 
     def _check_121(self, darts, points, event):
@@ -138,13 +158,17 @@ class GameLogic:
             self.leg_scores[player] += 1
             self.x01 += 1
             self.scores = [self.x01] * self.num_players
+
             self.starting_player = (self.starting_player + 1) % self.num_players
             self.current_player = self.starting_player
+
             event["leg_won"] = True
+
         elif self.scores[player] <= 1:
             self.scores[player] += points
             event["bust"] = True
             self.current_player = (self.current_player + 1) % self.num_players
+
         else:
             self.current_player = (self.current_player + 1) % self.num_players
 

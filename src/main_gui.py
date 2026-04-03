@@ -1,6 +1,6 @@
 import tkinter as tk
 from game_logic import GameLogic
-from gui_video import GUIVideo
+from gui import GUIVideo
 
 def main_gui(video = True):
     if video :
